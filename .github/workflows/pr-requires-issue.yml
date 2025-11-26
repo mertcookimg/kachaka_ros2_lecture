@@ -1,0 +1,44 @@
+name: Check PR links to Issue
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  check_issue_link:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ensure PR body contains Issue link
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          
+          # PR本文が空の場合はnullになる可能性があるため、空文字列として扱う
+          if [ -z "$BODY" ]; then
+            BODY=""
+          fi
+
+          echo "PR body:"
+          echo "----------------"
+          echo "$BODY"
+          echo "----------------"
+
+          # Fixes #, Closes #, Resolves # のいずれかが含まれているかチェック
+          if echo "$BODY" | grep -qE "(Fixes|Closes|Resolves) #[0-9]+"; then
+            echo "✅ Found Issue link in PR body."
+            exit 0
+          fi
+          
+          echo "❌ PR body must include 'Fixes #<issue number>', 'Closes #<issue number>', or 'Resolves #<issue number>' to link an Issue."
+          echo ""
+          echo "   Please add one of the following to the PR description:"
+          echo "   - Fixes #123"
+          echo "   - Closes #123"
+          echo "   - Resolves #123"
+          echo ""
+          echo "   Exception: Typo fixes and small documentation changes are OK without an Issue."
+          echo "   例外: 誤字修正・小さなドキュメント修正は Issue なし PR OK"
+          echo ""
+          echo "   If this PR is an exception case, please contact maintainers."
+          exit 1
+
