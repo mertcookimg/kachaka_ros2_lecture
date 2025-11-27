@@ -14,6 +14,10 @@ class KachakaFeedbackControl(Node):
     def __init__(self):
         super().__init__('kachaka_feedback_control')
 
+        # Declare parameter to check if running in simulation
+        self.declare_parameter('use_sim', False)
+        use_sim = self.get_parameter('use_sim').get_parameter_value().bool_value
+
         # Define a QoS profile with BEST_EFFORT reliability
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -24,13 +28,21 @@ class KachakaFeedbackControl(Node):
         # Publisher for velocity commands
         self.cmd_vel_pub = self.create_publisher(Twist, '/kachaka/manual_control/cmd_vel', 10)
 
+        # Select odometry topic based on simulation mode
+        if use_sim:
+            odom_topic = '/kachaka/wheel_odometry/wheel_odometry'
+        else:
+            odom_topic = '/kachaka/odometry/odometry'
+
         # Subscriber for odometry data with BEST_EFFORT QoS
         self.odom_sub = self.create_subscription(
             Odometry,
-            '/kachaka/odometry/odometry',
+            odom_topic,
             self.callback_odom,
             qos_profile
         )
+        
+        self.get_logger().info(f'Subscribing to odometry topic: {odom_topic}')
 
         self.x = None
         self.y = None
